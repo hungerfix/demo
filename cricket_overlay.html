@@ -2135,7 +2135,20 @@
             }
             loadVoices(); // Initial load
 
-            function speakText(text) {
+            function playNextTTS() {
+                if (ttsQueue.length === 0) { ttsPlaying = false; return; }
+                ttsPlaying = true;
+
+                // Catch-up logic: increase speed if queue is long
+                let rate = 1.0;
+                if (ttsQueue.length > 3) rate = 1.4;
+                else if (ttsQueue.length > 1) rate = 1.2;
+
+                const text = ttsQueue.shift();
+                speakText(text, rate);
+            }
+
+            function speakText(text, rate = 1.0) {
                 if (!('speechSynthesis' in window)) {
                     console.error('[TTS] Browser does not support SpeechSynthesis');
                     return;
@@ -2145,7 +2158,7 @@
                 window.speechSynthesis.cancel();
 
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.0;  // Speed: 0.1 to 10
+                utterance.rate = rate;  // Dynamic speed based on queue
                 utterance.pitch = 1.0; // Pitch: 0 to 2
                 utterance.volume = 1.0; // Volume: 0 to 1
 
@@ -2169,24 +2182,8 @@
                     playNextTTS(); // Continue to next on error
                 };
 
-                console.log(`[TTS] Speaking: "${text.substring(0, 60)}..."`);
+                console.log(`[TTS] Speaking: "${text.substring(0, 60)}..." at rate ${rate}`);
                 window.speechSynthesis.speak(utterance);
-            }
-
-            // TTS queue to prevent overlapping audio
-            let ttsQueue = [];
-            let ttsPlaying = false;
-
-            function enqueueTTS(text) {
-                ttsQueue.push(text);
-                if (!ttsPlaying) playNextTTS();
-            }
-
-            function playNextTTS() {
-                if (ttsQueue.length === 0) { ttsPlaying = false; return; }
-                ttsPlaying = true;
-                const text = ttsQueue.shift();
-                speakText(text);
             }
 
             // Listen for TTS text from server — overlay fetches audio URL directly

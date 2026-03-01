@@ -51,6 +51,7 @@ let scoreData = {
 // TTS State and Configuration
 let ttsEnabled = true;
 let lastReadCommentaryEvent = null; // Track last read commentary to avoid repeats
+let lastProcessedBallKey = null; // Robust tracking: over.ball
 let lastReadCommentaryText = null;
 
 const PORT = process.env.PORT || 5555;
@@ -1620,19 +1621,23 @@ async function fetchCricbuzzScore() {
       }));
     }
 
-    // --- TTS PROCESSING ---
+    // --- TTS PROCESSING (Multi-ball detection) ---
     if (ttsEnabled && scoreData.recentCommentary && scoreData.recentCommentary.length > 0) {
-      const latestCommentary = scoreData.recentCommentary[0];
-      // Check if it's a new commentary line
-      if (latestCommentary.text &&
-        latestCommentary.text !== lastReadCommentaryText &&
-        (latestCommentary.event !== lastReadCommentaryEvent || !lastReadCommentaryEvent)) {
+      // Find all new balls since lastProcessedBallKey
+      const newItems = [];
+      for (const item of scoreData.recentCommentary) {
+        const key = item.over !== undefined ? `${item.over}.${item.ball || 0}` : item.text;
+        if (key === lastProcessedBallKey) break;
+        newItems.unshift(item); // Add to front so we process oldest first
+      }
 
-        lastReadCommentaryText = latestCommentary.text;
-        lastReadCommentaryEvent = latestCommentary.event;
-
-        // Generate TTS for the new line
-        generateTTS(latestCommentary.text);
+      for (const item of newItems) {
+        if (item.text && item.text !== lastReadCommentaryText) {
+          console.log(`[TTS] New event detected: "${item.text.substring(0, 50)}..."`);
+          generateTTS(item.text);
+          lastReadCommentaryText = item.text;
+        }
+        lastProcessedBallKey = item.over !== undefined ? `${item.over}.${item.ball || 0}` : item.text;
       }
     }
 
@@ -1947,12 +1952,12 @@ async function start() {
     try { await fetchScore(); } catch (e) { console.error('Initial fetch error:', e.message); }
   }
 
-  // Update every 2 seconds for ball-by-ball accuracy (guarded — never crashes the process)
+  // Update every 1.5 seconds for better real-time accuracy
   setInterval(async () => {
     if (matchUrl) {
       try { await fetchScore(); } catch (e) { console.error('[FETCH LOOP ERROR]', e.message); }
     }
-  }, 2000);
+  }, 1500);
 }
 
 start().catch(err => {

@@ -1612,44 +1612,82 @@
 
     // --- Socket Setup ---
     let socket;
-    function setupSocket() {
-      // Connect to the server socket
-      socket = io(BASE_URL);
-
-      socket.on('tts_state', (data) => {
-        const btn = document.getElementById('ttsToggleBtn');
-        if (data.enabled) {
-          btn.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-            </svg>
-            TTS Auto-Play: On
-          `;
-          btn.style.background = 'var(--green-bg)';
-          btn.style.borderColor = 'var(--green-border)';
-          btn.style.color = 'var(--green)';
-        } else {
-          btn.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-              <line x1="23" y1="9" x2="17" y2="15"></line>
-              <line x1="17" y1="9" x2="23" y2="15"></line>
-            </svg>
-            TTS Auto-Play: Off
-          `;
-          btn.style.background = 'var(--surface-2)';
-          btn.style.borderColor = 'var(--border)';
-          btn.style.color = 'var(--text-dim)';
-        }
-      });
-    }
-
     // --- Toggle TTS ---
     function toggleTTS() {
       if (socket) {
         socket.emit('toggle_tts');
       }
+    }
+
+    // --- TTS Playback (Dashboard Support) ---
+    let ttsQueue = [];
+    let ttsPlaying = false;
+    let availableVoices = [];
+
+    function loadVoices() {
+      availableVoices = window.speechSynthesis.getVoices();
+    }
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    loadVoices();
+
+    function playNextTTS() {
+      if (ttsQueue.length === 0) { ttsPlaying = false; return; }
+      ttsPlaying = true;
+
+      // Catch-up logic: increase speed if queue is long
+      let rate = 1.0;
+      if (ttsQueue.length > 3) rate = 1.4;
+      if (ttsQueue.length > 1) rate = 1.2;
+
+      const text = ttsQueue.shift();
+      speakText(text, rate);
+    }
+
+    function speakText(text, rate = 1.0) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = rate;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      const englishVoice = availableVoices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) ||
+        availableVoices.find(v => v.lang.startsWith('en') && v.name.includes('Microsoft')) ||
+        availableVoices.find(v => v.lang.startsWith('en'));
+      if (englishVoice) utterance.voice = englishVoice;
+      utterance.onend = () => { ttsPlaying = false; playNextTTS(); };
+      utterance.onerror = () => { ttsPlaying = false; playNextTTS(); };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function setupSocket() {
+      socket = io(BASE_URL);
+
+      socket.on('tts_state', (data) => {
+        const btn = document.getElementById('ttsToggleBtn');
+        // ... update button styles (already in current code) ...
+        const enabled = data.enabled;
+        if (enabled) {
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg> TTS Auto-Play: On`;
+          btn.style.background = 'var(--green-bg)';
+          btn.style.borderColor = 'var(--green-border)';
+          btn.style.color = 'var(--green)';
+        } else {
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg> TTS Auto-Play: Off`;
+          btn.style.background = 'var(--surface-2)';
+          btn.style.borderColor = 'var(--border)';
+          btn.style.color = 'var(--text-dim)';
+        }
+      });
+
+      socket.on('play_tts', (data) => {
+        // Only play if the dashboard is the active focus for the user wanting to hear it
+        // and if it's generally enabled in the state
+        if (data && data.text) {
+          enqueueTTS(data.text);
+        }
+      });
     }
 
     // --- Fetch current match from server ---
