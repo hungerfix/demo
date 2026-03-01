@@ -55,6 +55,10 @@ let lastReadCommentaryText = null;
 
 const PORT = process.env.PORT || 5555;
 
+console.log(`🏏 Cricket Score Server starting on port ${PORT}...`);
+console.log(`📊 Dashboard: http://localhost:${PORT}/dashboard.html`);
+console.log(`🎯 Overlay:   http://localhost:${PORT}/overlay`);
+
 // Custom overlays directory
 const CUSTOM_OVERLAYS_DIR = path.join(__dirname, 'custom_overlays');
 if (!fs.existsSync(CUSTOM_OVERLAYS_DIR)) {

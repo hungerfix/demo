@@ -988,8 +988,10 @@
       <span class="topbar-title">Railokatta</span>
     </div>
     <div class="topbar-status">
-      <button class="btn btn-primary" id="ttsToggleBtn" onclick="toggleTTS()" style="padding: 6px 12px; font-size: 11px; margin-right: 12px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;">
+      <button class="btn btn-primary" id="ttsToggleBtn" onclick="toggleTTS()"
+        style="padding: 6px 12px; font-size: 11px; margin-right: 12px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          style="margin-right: 4px; vertical-align: text-bottom;">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
           <line x1="23" y1="9" x2="17" y2="15"></line>
           <line x1="17" y1="9" x2="23" y2="15"></line>
@@ -1037,7 +1039,8 @@
           <circle cx="12" cy="12" r="10" />
           <path d="M12 16v-4M12 8h.01" />
         </svg>
-        Paste any cricbuzz.com live match URL to start tracking scores
+        Paste any cricbuzz.com, crex.com, cricketfastliveline.in, or heroliveline.com live match URL to start tracking
+        scores
       </div>
     </div>
 
@@ -1671,8 +1674,8 @@
         showToast('Please paste a Cricbuzz or Crex match URL', 'error');
         return;
       }
-      if (!url.includes('cricbuzz.com') && !url.includes('crex.com') && !url.includes('cricketfastliveline.in')) {
-        showToast('URL must be from cricbuzz.com or crex.com', 'error');
+      if (!url.includes('cricbuzz.com') && !url.includes('crex.com') && !url.includes('cricketfastliveline.in') && !url.includes('heroliveline.com')) {
+        showToast('URL must be from cricbuzz.com, crex.com, cricketfastliveline.in, or heroliveline.com', 'error');
         return;
       }
 
