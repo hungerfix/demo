@@ -2123,6 +2123,17 @@
 
             // Build TTS using browser's built-in SpeechSynthesis API (free, no API key needed)
             let availableVoices = [];
+            let ttsQueue = [];
+            let ttsPlaying = false;
+
+            function enqueueTTS(text) {
+                if (!text || !text.trim()) return;
+                ttsQueue.push(text.trim());
+                console.log(`[TTS] Enqueued: "${text.substring(0, 60)}..." (queue size: ${ttsQueue.length})`);
+                if (!ttsPlaying) {
+                    playNextTTS();
+                }
+            }
 
             // Load voices asynchronously (required for some browsers)
             function loadVoices() {
