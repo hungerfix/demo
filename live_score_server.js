@@ -663,6 +663,16 @@ async function fetchCrexScore() {
         });
     }
 
+    // --- TTS PROCESSING FOR CREX ---
+    if (ttsEnabled && scoreData.recentCommentary && scoreData.recentCommentary.length > 0) {
+      const latestCommentary = scoreData.recentCommentary[0];
+      if (latestCommentary.text && latestCommentary.text !== lastReadCommentaryText) {
+        console.log(`[TTS] New commentary detected for CREX: ${latestCommentary.text}`);
+        generateTTS(latestCommentary.text);
+        lastReadCommentaryText = latestCommentary.text;
+      }
+    }
+
     // Store raw CREX data for advanced overlays
     scoreData.crexRaw = {
       live: live,
